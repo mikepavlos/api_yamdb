@@ -38,12 +38,6 @@ class User(AbstractUser):
         ordering = (id,)
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['username', 'email'],
-                name='unique_user_email'
-            )
-        ]
 
     def __str__(self):
         return self.username
