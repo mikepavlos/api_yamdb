@@ -3,10 +3,15 @@ from django.db import models
 
 
 class User(AbstractUser):
-    username = models.CharField(
-        max_length=150,
-        unique=True,
-    )
+    USER = 'user'
+    MODERATOR = 'moderator'
+    ADMIN = 'admin'
+    ROLE_CHOICES = [
+        (USER, 'user'),
+        (MODERATOR, 'moderator'),
+        (ADMIN, 'admin')
+    ]
+
     email = models.EmailField(
         max_length=254,
         unique=True,
@@ -24,12 +29,8 @@ class User(AbstractUser):
     )
     role = models.CharField(
         max_length=15,
-        choices=[
-            ('user', 'user'),
-            ('moderator', 'moderator'),
-            ('admin', 'admin')
-        ],
-        default='user',
+        choices=ROLE_CHOICES,
+        default=USER,
         blank=True,
     )
 
@@ -37,6 +38,12 @@ class User(AbstractUser):
         ordering = (id,)
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['username', 'email'],
+                name='unique_user_email'
+            )
+        ]
 
     def __str__(self):
         return self.username
