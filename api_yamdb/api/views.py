@@ -4,7 +4,7 @@ from rest_framework import filters, status, permissions, viewsets
 
 from .mixins import ListCreateDestroyViewSet
 from .filters import TitlesFilter
-from reviews.models import Category, Genre, Title,
+from reviews.models import (Category, Genre, Title)
 from .serializers import (
     CategorySerializer, 
     GenreSerializer,
@@ -36,7 +36,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
     filter_backends = (DjangoFilterBackend,)
-    filterset_class = TitleFilterSet
+    filterset_class = TitlesFilter
     #Добавить perrmission
     permission_classes = ()
 
