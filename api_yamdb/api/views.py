@@ -1,4 +1,5 @@
 import django_filters
+from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, permissions, viewsets
 
@@ -9,7 +10,7 @@ from .serializers import (
     CategorySerializer, 
     GenreSerializer,
     TitleSerializer, 
-    TitleWriteSerializer,
+    GetTitleSerializer,
 )
 
 class CategoryViewSet(ListCreateDestroyViewSet):
@@ -33,7 +34,8 @@ class GenreViewSet(ListCreateDestroyViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.all()
+    queryset = Title.objects.all().annotate(
+        Avg('reviews__score'))
     serializer_class = TitleSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitlesFilter
@@ -42,5 +44,5 @@ class TitleViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
-            return TitleWriteSerializer
+            return GetTitleSerializer
         return TitleSerializer
