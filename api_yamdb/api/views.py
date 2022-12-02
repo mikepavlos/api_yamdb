@@ -11,17 +11,22 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (AllowAny,)
-    filter_backends = (filters.SearchFilter,)
     lookup_field = 'username'
+    filter_backends = (filters.SearchFilter,)
     search_fields = ('username',)
 
-    @action(methods=['get', 'patch'], detail=True, permission_classes=AllowAny)
+    @action(
+        methods=['get', 'patch'],
+        detail=True,
+        permission_classes=AllowAny
+    )
     def me(self, request):
+        user = request.user
         if request.method == 'GET':
-            serializer = UserSerializer(request.user)
+            serializer = UserSerializer(user)
         else:
             serializer = MeSerializer(
-                request.user,
+                user,
                 data=request.data,
                 partial=True
             )
