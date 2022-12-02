@@ -18,13 +18,14 @@ from .serializers import (
     MeSerializer,
 )
 
+
 class CategoryViewSet(ListCreateDestroyViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
     lookup_field = 'slug'
-    #Добавить perrmission
+    # Добавить perrmission
     permission_classes = ()
 
 
@@ -34,17 +35,16 @@ class GenreViewSet(ListCreateDestroyViewSet):
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
     lookup_field = 'slug'
-    #Добавить perrmission
+    # Добавить perrmission
     permission_classes = ()
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.all().annotate(
-        Avg('reviews__score'))
+    queryset = Title.objects.all()#.annotate(Avg('reviews__score'))
     serializer_class = TitleSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitlesFilter
-    #Добавить perrmission
+    # Добавить perrmission
     permission_classes = ()
 
     def get_serializer_class(self):
