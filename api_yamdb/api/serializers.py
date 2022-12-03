@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from reviews.models import (Category, Genre, Title, User)
+from reviews.models import (Category, Genre, Review, Title, User)
+from django.db.models import Avg
+from rest_framework.validators import UniqueTogetherValidator
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -28,10 +30,19 @@ class TitleSerializer(serializers.ModelSerializer):
         slug_field='slug', 
         many=True,
     )
+    rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Title
-        fields = '__all__'
+        fields = ('id', 'name', 'year', 'rating',
+        'description', 'genre', 'category'
+        )
+    
+    def get_rating(self, obj):
+        rating = obj.avg
+        if obj.avg == None:
+            return "None"
+        return round(rating)
 
 
 class GetTitleSerializer(serializers.ModelSerializer):
@@ -79,3 +90,31 @@ class MeSerializer(serializers.ModelSerializer):
                 'Использовать имя "me" в качестве username запрещено.'
             )
         return value
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username'
+    )
+    title = serializers.PrimaryKeyRelatedField(
+        read_only=True
+    )
+
+    class Meta:
+        fields = '__all__'
+        model = Review
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Review.objects.all(),
+                fields=['author', 'title'],
+                message='Вы уже оставили отзыв на данный title'
+            )
+        ]
+
+    def validate_score(self,score):
+        if score != int:
+            raise serializers.ValidationError('Оценка должна быть целым числом')
+        if score <1 or score >10:
+            raise serializers.ValidationError('Оценка должна быть от 1 до 10')
+        return score

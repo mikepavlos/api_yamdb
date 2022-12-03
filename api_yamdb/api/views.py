@@ -1,4 +1,5 @@
 import django_filters
+from django.shortcuts import get_object_or_404
 from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, permissions, viewsets
@@ -16,6 +17,7 @@ from .serializers import (
     GetTitleSerializer,
     UserSerializer,
     MeSerializer,
+    ReviewSerializer
 )
 
 
@@ -40,12 +42,15 @@ class GenreViewSet(ListCreateDestroyViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.all()#.annotate(Avg('reviews__score'))
     serializer_class = TitleSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitlesFilter
     # Добавить perrmission
     permission_classes = ()
+
+    def get_queryset(self):
+        new_queryset = Title.objects.annotate(avg=Avg('review__score'))
+        return new_queryset
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -79,3 +84,20 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    serializer_class = ReviewSerializer
+    permission_classes = []
+
+    def get_queryset(self):
+        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+        new_queryset = title.review
+        return new_queryset
+
+    def perform_create(self, serializer):
+        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+        serializer.save(
+            author=self.request.user,
+            title_id=title.pk
+        )
