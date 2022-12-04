@@ -2,8 +2,8 @@ from rest_framework import permissions
 from reviews.models import User
 
 
-class IsAdmin(permissions.BasePermission):
-    """Разрешения для действий с пользователями от имени администратора"""
+class IsAdminRole(permissions.BasePermission):
+    """Разрешения для администратора"""
     def has_permission(self, request, view):
         return (
             request.user.is_authenticated
