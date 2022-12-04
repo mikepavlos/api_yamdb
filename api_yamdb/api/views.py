@@ -1,10 +1,16 @@
 import django_filters
+from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
 from django.db.models import Avg
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .mixins import ListCreateDestroyViewSet
 from .filters import TitlesFilter
@@ -16,6 +22,8 @@ from .serializers import (
     GetTitleSerializer,
     UserSerializer,
     MeSerializer,
+    SignUpSerializer,
+    TokenSerializer,
 )
 
 
@@ -79,3 +87,35 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class SignUpView(APIView):
+    def send_confirmation_code(self, user):
+        confirmation_code = default_token_generator.make_token(user)
+        return send_mail(
+            'Код подтверждения',
+            f'Код подтверждения {confirmation_code}',
+            settings.ADMIN_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+
+    def post(self, request):
+        serializer = SignUpSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        self.send_confirmation_code(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class GetTokenView(APIView):
+    def post(self, request):
+        serializer = TokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        username = serializer.validated_data['username']
+        confirmation_code = serializer.validated_data['confirmation_code']
+        user = get_object_or_404(User, username=username)
+        if default_token_generator.check_token(user, confirmation_code):
+            token = RefreshToken.for_user(user)
+            return Response({'token': str(token)}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
