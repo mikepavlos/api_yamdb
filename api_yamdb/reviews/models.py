@@ -105,14 +105,13 @@ class Review(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='review'
+        related_name='reviews'
     )
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
-        related_name="review",
-        blank=False,
-        null=False
+        related_name="reviews",
+ 
     )
     score = models.PositiveSmallIntegerField(
         validators=[
@@ -131,3 +130,21 @@ class Review(models.Model):
     class Meta:
         unique_together = ('author', 'title')
 
+
+class Comment(models.Model):
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='comments'
+    )
+    text = models.TextField()
+    pub_date = models.DateTimeField(
+        'Дата добавления',
+        auto_now_add=True,
+        db_index=True
+    )
+    review = models.ForeignKey(
+        Review,
+        on_delete=models.CASCADE,
+        related_name='comments'
+    )
