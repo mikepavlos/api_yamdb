@@ -109,13 +109,7 @@ class ReviewSerializer(serializers.ModelSerializer):
             'id', 'author', 'pub_date'
         )
         model = Review
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Review.objects.all(),
-                fields=['author', 'title'],
-                message='Вы уже оставили отзыв на данный title'
-            )
-        ]
+
 
     def validate_score(self,score):
         if score != int:
