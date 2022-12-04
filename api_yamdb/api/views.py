@@ -9,9 +9,10 @@ from rest_framework.response import Response
 
 from .mixins import ListCreateDestroyViewSet
 from .filters import TitlesFilter
-from reviews.models import (Category, Genre, Title, User)
+from reviews.models import (Category, Genre, Title, User, Review)
 from .serializers import (
     CategorySerializer,
+    CommentSerializer,
     GenreSerializer,
     TitleSerializer,
     GetTitleSerializer,
@@ -92,7 +93,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
-        new_queryset = title.review
+        new_queryset = title.reviews
         return new_queryset
 
     def perform_create(self, serializer):
@@ -100,4 +101,22 @@ class ReviewViewSet(viewsets.ModelViewSet):
         serializer.save(
             author=self.request.user,
             title_id=title.pk
+        )
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    serializer_class = CommentSerializer
+    permission_classes = []
+
+    def get_queryset(self):
+        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+        review = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
+        new_queryset = review.comments
+        return new_queryset
+
+    def perform_create(self, serializer):
+        review = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
+        serializer.save(
+            author=self.request.user,
+            review_id=review.pk
         )

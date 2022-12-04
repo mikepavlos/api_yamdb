@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from reviews.models import (Category, Genre, Review, Title, User)
+from reviews.models import (Category, Comment, Genre, Review, Title, User)
 from django.db.models import Avg
 from rest_framework.validators import UniqueTogetherValidator
 
@@ -37,10 +37,13 @@ class TitleSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'year', 'rating',
         'description', 'genre', 'category'
         )
+        read_only_fields = (
+            'id', 'rating'
+        )
     
     def get_rating(self, obj):
         rating = obj.avg
-        if obj.avg == None:
+        if rating == None:
             return "None"
         return round(rating)
 
@@ -97,12 +100,14 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only=True,
         slug_field='username'
     )
-    title = serializers.PrimaryKeyRelatedField(
-        read_only=True
-    )
 
     class Meta:
-        fields = '__all__'
+        fields = (
+            'id', 'text', 'author', 'score', 'pub_date'
+        )
+        read_only_fields = (
+            'id', 'author', 'pub_date'
+        )
         model = Review
         validators = [
             UniqueTogetherValidator(
@@ -115,6 +120,22 @@ class ReviewSerializer(serializers.ModelSerializer):
     def validate_score(self,score):
         if score != int:
             raise serializers.ValidationError('Оценка должна быть целым числом')
-        if score <1 or score >10:
+        if 1 > score > 10:
             raise serializers.ValidationError('Оценка должна быть от 1 до 10')
         return score
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username'
+    )
+
+    class Meta:
+        fields = (
+            'id', 'text', 'author', 'pub_date'
+        )
+        read_only_fields = (
+            'id', 'author', 'pub_date'
+        )
+        model = Comment
