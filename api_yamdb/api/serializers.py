@@ -42,10 +42,11 @@ class TitleSerializer(serializers.ModelSerializer):
         )
 
     def get_rating(self, obj):
-        rating = obj.avg
-        if rating is None:
+        queryset_avg = Title.objects.annotate(rating=Avg('reviews__score'))
+        title = queryset_avg.get(pk=obj.pk)
+        if title.rating is None:
             return "None"
-        return round(rating)
+        return round(title.rating)
 
 
 class GetTitleSerializer(serializers.ModelSerializer):
@@ -102,33 +103,29 @@ class ReviewSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        fields = (
-            'id', 'text', 'author', 'score', 'pub_date'
-        )
-        read_only_fields = ('id')
         model = Review
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        read_only_fields = ('id',)
 
-
-    def validate_score(self,score):
-        if score != int:
-            raise serializers.ValidationError('Оценка должна быть целым числом')
+    def validate_score(self, score):
         if 1 > score > 10:
-            raise serializers.ValidationError('Оценка должна быть от 1 до 10')
+            raise serializers.ValidationError(
+                'Оценка должна быть от 1 до 10'
+            )
         return score
 
 
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         read_only=True,
-        slug_field='username'
+        slug_field='username',
+        default=serializers.CurrentUserDefault()
     )
 
     class Meta:
-        fields = (
-            'id', 'text', 'author', 'pub_date'
-        )
-        read_only_fields = ('id',)
         model = Comment
+        fields = ('id', 'text', 'author', 'pub_date')
+        read_only_fields = ('id',)
 
 
 class SignUpSerializer(serializers.ModelSerializer):

@@ -1,4 +1,3 @@
-import django_filters
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
@@ -7,15 +6,17 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import (
+    AllowAny, IsAuthenticatedOrReadOnly, IsAuthenticated,
+)
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from reviews.models import Category, Genre, Title, User
 
-from .mixins import ListCreateDestroyViewSet
 from .filters import TitlesFilter
-from reviews.models import Category, Genre, Title, User, Review
-from .permissions import IsAdminRole
+from .mixins import ListCreateDestroyViewSet
+from .permissions import IsAdminRole, IsAdminOrReadOnly
 from .serializers import (
     CategorySerializer,
     CommentSerializer,
@@ -36,8 +37,7 @@ class CategoryViewSet(ListCreateDestroyViewSet):
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
     lookup_field = 'slug'
-    # Добавить perrmission AdminOrReadOnly
-    # permission_classes = ()
+    permission_classes = (IsAdminOrReadOnly,)
 
 
 class GenreViewSet(ListCreateDestroyViewSet):
@@ -46,19 +46,17 @@ class GenreViewSet(ListCreateDestroyViewSet):
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
     lookup_field = 'slug'
-    # Добавить perrmission AdminOrReadOnly
-    # permission_classes = ()
+    permission_classes = (IsAdminOrReadOnly,)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
     serializer_class = TitleSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitlesFilter
-    # Добавить perrmission AdminOrReadOnly
-    # permission_classes = ()
+    permission_classes = (IsAdminOrReadOnly,)
 
     def get_queryset(self):
-        return Title.objects.annotate(avg=Avg('review__score'))
+        return Title.objects.annotate(avg=Avg('reviews__score'))
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -68,7 +66,7 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
-    permission_classes = []
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_title(self):
         return get_object_or_404(Title, pk=self.kwargs.get('title_id'))
@@ -85,12 +83,14 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = []
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_review(self):
         title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
-        new_queryset = title.reviews
-        return get_object_or_404(new_queryset, pk=self.kwargs.get('review_id'))
+        title_reviews = title.reviews
+        return get_object_or_404(
+            title_reviews, pk=self.kwargs.get('review_id')
+        )
 
     def get_queryset(self):
         return self.get_review().comments.all()
@@ -112,7 +112,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(
         methods=('get', 'patch'),
-        detail=True,
+        detail=False,
         permission_classes=(IsAuthenticated,)
     )
     def me(self, request):
@@ -120,11 +120,7 @@ class UserViewSet(viewsets.ModelViewSet):
         if request.method == 'GET':
             serializer = UserSerializer(user)
         else:
-            serializer = MeSerializer(
-                user,
-                data=request.data,
-                partial=True
-            )
+            serializer = MeSerializer(user, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
