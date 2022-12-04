@@ -45,14 +45,12 @@ class TitleSerializer(serializers.ModelSerializer):
         queryset_avg = Title.objects.annotate(rating=Avg('reviews__score'))
         title = queryset_avg.get(pk=obj.pk)
         if title.rating is None:
-            return "None"
+            return None
         return round(title.rating)
 
 
 class GetTitleSerializer(serializers.ModelSerializer):
-    rating = serializers.IntegerField(
-        source='reviews__score__avg', read_only=True
-    )
+    rating = serializers.SerializerMethodField()
     genre = GenreSerializer(many=True)
     category = CategorySerializer()
 
@@ -61,6 +59,13 @@ class GetTitleSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'name', 'year', 'rating', 'description', 'genre', 'category'
         )
+
+    def get_rating(self, obj):
+        queryset_avg = Title.objects.annotate(rating=Avg('reviews__score'))
+        title = queryset_avg.get(pk=obj.pk)
+        if title.rating is None:
+            return None
+        return round(title.rating)
 
 
 class UserSerializer(serializers.ModelSerializer):
