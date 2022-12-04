@@ -105,9 +105,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'text', 'author', 'score', 'pub_date'
         )
-        read_only_fields = (
-            'id', 'author', 'pub_date'
-        )
+        read_only_fields = ('id')
         model = Review
 
 
@@ -129,7 +127,5 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'text', 'author', 'pub_date'
         )
-        read_only_fields = (
-            'id', 'author', 'pub_date'
-        )
+        read_only_fields = ('id')
         model = Comment
