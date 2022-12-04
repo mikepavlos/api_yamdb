@@ -50,8 +50,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     permission_classes = ()
 
     def get_queryset(self):
-        new_queryset = Title.objects.annotate(avg=Avg('review__score'))
-        return new_queryset
+        return Title.objects.annotate(avg=Avg('review__score'))
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -93,8 +92,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
-        new_queryset = title.reviews
-        return new_queryset
+        return title.reviews
 
     def perform_create(self, serializer):
         title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
@@ -110,9 +108,9 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
-        review = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
-        new_queryset = review.comments
-        return new_queryset
+        first_queryset = title.reviews
+        review = get_object_or_404(first_queryset, pk=self.kwargs.get('review_id')) 
+        return review.comments
 
     def perform_create(self, serializer):
         review = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
