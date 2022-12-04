@@ -34,16 +34,16 @@ class TitleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = ('id', 'name', 'year', 'rating',
-        'description', 'genre', 'category'
+        fields = (
+            'id', 'name', 'year', 'rating', 'description', 'genre', 'category'
         )
         read_only_fields = (
             'id', 'rating'
         )
-    
+
     def get_rating(self, obj):
         rating = obj.avg
-        if rating == None:
+        if rating is None:
             return "None"
         return round(rating)
 

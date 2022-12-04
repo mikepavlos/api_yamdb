@@ -14,7 +14,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .mixins import ListCreateDestroyViewSet
 from .filters import TitlesFilter
-from reviews.models import (Category, Genre, Title, User, Review)
+from reviews.models import Category, Genre, Title, User, Review
 from .permissions import IsAdmin
 from .serializers import (
     CategorySerializer,
@@ -100,7 +100,6 @@ class CommentViewSet(viewsets.ModelViewSet):
             author=self.request.user,
             review=self.get_review()
         )
-
 
 
 class UserViewSet(viewsets.ModelViewSet):
