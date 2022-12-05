@@ -111,7 +111,6 @@ class Review(models.Model):
         Title,
         on_delete=models.CASCADE,
         related_name="reviews",
- 
     )
     score = models.PositiveSmallIntegerField(
         validators=[
