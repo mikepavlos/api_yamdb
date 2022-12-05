@@ -7,7 +7,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import (
-    AllowAny, IsAuthenticatedOrReadOnly, IsAuthenticated,
+    AllowAny, IsAuthenticated,
 )
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -16,7 +16,7 @@ from reviews.models import Category, Genre, Title, User
 
 from .filters import TitlesFilter
 from .mixins import ListCreateDestroyViewSet
-from .permissions import IsAdminRole, IsAdminOrReadOnly
+from .permissions import IsAdminRole, IsAdminOrReadOnly, IsAuthenticatedUser
 from .serializers import (
     CategorySerializer,
     CommentSerializer,
@@ -56,7 +56,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAdminOrReadOnly,)
 
     def get_queryset(self):
-        return Title.objects.annotate(avg=Avg('reviews__score'))
+        return Title.objects.annotate(rating=Avg('reviews__score'))
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -66,7 +66,7 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly,)
+    permission_classes = (IsAuthenticatedUser,)
 
     def get_title(self):
         return get_object_or_404(Title, pk=self.kwargs.get('title_id'))
@@ -83,7 +83,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly,)
+    permission_classes = (IsAuthenticatedUser,)
 
     def get_review(self):
         title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
