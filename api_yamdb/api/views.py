@@ -6,9 +6,7 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import (
-    AllowAny, IsAuthenticated,
-)
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -21,8 +19,8 @@ from .serializers import (
     CategorySerializer,
     CommentSerializer,
     GenreSerializer,
-    TitleSerializer,
-    GetTitleSerializer,
+    TitleWriteializer,
+    TitleReadSerializer,
     UserSerializer,
     MeSerializer,
     SignUpSerializer,
@@ -50,7 +48,7 @@ class GenreViewSet(ListCreateDestroyViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    serializer_class = TitleSerializer
+    serializer_class = TitleWriteializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitlesFilter
     permission_classes = (IsAdminOrReadOnly,)
@@ -60,8 +58,8 @@ class TitleViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
-            return GetTitleSerializer
-        return TitleSerializer
+            return TitleReadSerializer
+        return TitleWriteializer
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -89,7 +87,8 @@ class CommentViewSet(viewsets.ModelViewSet):
         title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
         title_reviews = title.reviews
         return get_object_or_404(
-            title_reviews, pk=self.kwargs.get('review_id')
+            title_reviews,
+            pk=self.kwargs.get('review_id')
         )
 
     def get_queryset(self):
