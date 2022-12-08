@@ -1,6 +1,8 @@
-from rest_framework import serializers
-from reviews.models import Category, Comment, Genre, Review, Title, User
 from django.db.models import Avg
+from rest_framework import serializers
+
+from reviews.models import Category, Comment, Genre, Review, Title, User
+from reviews.validators import username_validator, year_validator
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -22,7 +24,7 @@ class GenreSerializer(serializers.ModelSerializer):
 class TitleReadSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(read_only=True, many=True)
-    rating = serializers.SerializerMethodField()
+    rating = serializers.IntegerField()
 
     class Meta:
         model = Title
@@ -30,12 +32,12 @@ class TitleReadSerializer(serializers.ModelSerializer):
             'id', 'name', 'year', 'rating', 'description', 'genre', 'category'
         )
 
-    def get_rating(self, obj):
-        queryset_avg = Title.objects.annotate(rating=Avg('reviews__score'))
-        title = queryset_avg.get(pk=obj.pk)
-        if title.rating is None:
-            return None
-        return round(title.rating)
+    # def get_rating(self, obj):
+    #     queryset_avg = Title.objects.annotate(rating=Avg('reviews__score'))
+    #     title = queryset_avg.get(pk=obj.pk)
+    #     if title.rating is None:
+    #         return None
+    #     return round(title.rating)
 
 
 class TitleWriteializer(serializers.ModelSerializer):
@@ -80,7 +82,7 @@ class ReviewSerializer(serializers.ModelSerializer):
     def validate(self, data):
         request = self.context['request']
         title = self.context['view'].kwargs.get('title_id')
-        if request.method == 'PATCH':
+        if request.method != 'POST':
             return data
         if Review.objects.filter(author=request.user, title=title).exists():
             raise serializers.ValidationError(
@@ -108,15 +110,15 @@ class SignUpSerializer(serializers.ModelSerializer):
         fields = ('email', 'username')
 
     def validate_username(self, value):
-        if value == 'me':
-            raise serializers.ValidationError(
-                'Использовать имя "me" в качестве username запрещено.'
-            )
+        username_validator(value)
         return value
 
 
 class TokenSerializer(serializers.Serializer):
-    username = serializers.CharField(required=True, max_length=150)
+    username = serializers.CharField(
+        required=True,
+        max_length=150,
+        validators=[username_validator])
     confirmation_code = serializers.CharField(required=True)
 
 
@@ -129,10 +131,7 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
     def validate_username(self, value):
-        if value == 'me':
-            raise serializers.ValidationError(
-                'Использовать имя "me" в качестве username запрещено.'
-            )
+        username_validator(value)
         return value
 
 
@@ -146,8 +145,5 @@ class MeSerializer(serializers.ModelSerializer):
         read_only_fields = ('role',)
 
     def validate_username(self, value):
-        if value == 'me':
-            raise serializers.ValidationError(
-                'Использовать имя "me" в качестве username запрещено.'
-            )
+        username_validator(value)
         return value

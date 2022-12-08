@@ -1,18 +1,28 @@
 from django.contrib.auth.models import AbstractUser
-from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
+
+from reviews.validators import username_validator, year_validator
+
+ADMIN = 'admin'
+MODERATOR = 'moderator'
+USER = 'user'
+
+ROLE_CHOICES = (
+    (ADMIN, ADMIN),
+    (MODERATOR, MODERATOR),
+    (USER, USER),
+)
+
+ROLE_MAX_LENGTH = max(len(i[0]) for i in ROLE_CHOICES)
 
 
 class User(AbstractUser):
-    USER = 'user'
-    MODERATOR = 'moderator'
-    ADMIN = 'admin'
-    ROLE_CHOICES = [
-        (USER, 'user'),
-        (MODERATOR, 'moderator'),
-        (ADMIN, 'admin')
-    ]
-
+    username = models.CharField(
+        unique=True,
+        max_length=150,
+        validators=[username_validator]
+    )
     email = models.EmailField(
         max_length=254,
         unique=True,
@@ -29,7 +39,7 @@ class User(AbstractUser):
         blank=True,
     )
     role = models.CharField(
-        max_length=15,
+        max_length=ROLE_MAX_LENGTH,
         choices=ROLE_CHOICES,
         default=USER,
         blank=True,
@@ -42,8 +52,16 @@ class User(AbstractUser):
     def __str__(self):
         return self.username
 
+    @property
+    def is_admin(self):
+        return self.role == ADMIN
 
-class CommonCategryGenre(models.Model):
+    @property
+    def is_moderator(self):
+        return self.role == MODERATOR
+
+
+class CommonCategoryGenre(models.Model):
     name = models.CharField(max_length=256)
     slug = models.SlugField(unique=True, max_length=50)
 
@@ -54,33 +72,23 @@ class CommonCategryGenre(models.Model):
         return self.name
 
 
-class Category(CommonCategryGenre):
-    # name = models.CharField(max_length=256)
-    # slug = models.SlugField(unique=True, max_length=50)
+class Category(CommonCategoryGenre):
 
     class Meta:
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
-    # def __str__(self):
-    #     return self.name
 
-
-class Genre(CommonCategryGenre):
-    # name = models.CharField(max_length=256)
-    # slug = models.SlugField(unique=True, max_length=50)
+class Genre(CommonCategoryGenre):
 
     class Meta:
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
 
-    # def __str__(self):
-    #     return self.name
-
 
 class Title(models.Model):
     name = models.CharField(max_length=200)
-    year = models.IntegerField()
+    year = models.IntegerField(validators=[year_validator])
     description = models.TextField(blank=True)
     genre = models.ManyToManyField(
         Genre,
