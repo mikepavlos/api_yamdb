@@ -2,6 +2,8 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
 
+from .validators import validate_year
+
 
 class User(AbstractUser):
     USER = 'user'
@@ -43,9 +45,15 @@ class User(AbstractUser):
         return self.username
 
 
-class Category(models.Model):
+class CommonGenreCategory(models.Model):
     name = models.CharField(max_length=256)
     slug = models.SlugField(unique=True, max_length=50)
+    
+    class Meta:
+        abstract=True
+
+
+class Category(CommonGenreCategory):
 
     class Meta:
         verbose_name = 'Категория'
@@ -55,9 +63,7 @@ class Category(models.Model):
         return self.name
 
 
-class Genre(models.Model):
-    name = models.CharField(max_length=256)
-    slug = models.SlugField(unique=True, max_length=50)
+class Genre(CommonGenreCategory):
 
     class Meta:
         verbose_name = 'Жанр'
@@ -69,8 +75,8 @@ class Genre(models.Model):
 
 class Title(models.Model):
     name = models.CharField(max_length=200)
-    year = models.IntegerField()
-    description = models.TextField(blank=True)
+    year = models.IntegerField(validators=[validate_year])
+    description = models.TextField(null=True, blank=True)
     genre = models.ManyToManyField(
         Genre,
         verbose_name='Жанр',
@@ -93,7 +99,7 @@ class Title(models.Model):
 
 class TitleGenre(models.Model):
     title = models.ForeignKey(Title, on_delete=models.CASCADE)
-    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
+    genre = models.ForeignKey(Genre, on_delete=models.PROTECT)
 
     class Meta:
         verbose_name = 'Произведение и жанр'
