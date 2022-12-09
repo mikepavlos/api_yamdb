@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -89,7 +90,7 @@ class Genre(CommonCategoryGenre):
 class Title(models.Model):
     name = models.CharField(max_length=200)
     year = models.IntegerField(validators=[year_validator])
-    description = models.TextField(blank=True)
+    description = models.TextField(blank=True, null=True)
     genre = models.ManyToManyField(
         Genre,
         verbose_name='Жанр',
@@ -133,8 +134,14 @@ class Review(models.Model):
     )
     score = models.PositiveSmallIntegerField(
         validators=[
-            MaxValueValidator(10),
-            MinValueValidator(1)
+            MaxValueValidator(
+                settings.MAX_SCORE,
+                message=f'Оценка должна быть не больше {settings.MAX_SCORE}'
+            ),
+            MinValueValidator(
+                settings.MIN_SCORE,
+                message=f'Оценка не должна быть менее {settings.MIN_SCORE}'
+            )
         ]
     )
     pub_date = models.DateTimeField(
@@ -143,7 +150,14 @@ class Review(models.Model):
     )
 
     class Meta:
-        unique_together = ('author', 'title')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['author', 'title'],
+                name='unique_review'
+            )
+        ]
+        verbose_name = 'Отзыв'
+        verbose_name_plural = 'Отзывы'
 
     def __str__(self):
         return str(self.pk)

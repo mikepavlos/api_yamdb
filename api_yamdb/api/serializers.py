@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.db.models import Avg
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
 from reviews.models import Category, Comment, Genre, Review, Title, User
@@ -24,23 +26,24 @@ class GenreSerializer(serializers.ModelSerializer):
 class TitleReadSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(read_only=True, many=True)
-    rating = serializers.IntegerField()
+    rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Title
         fields = (
             'id', 'name', 'year', 'rating', 'description', 'genre', 'category'
         )
+        read_only_fields = ('id', 'name', 'rating', 'description')
 
-    # def get_rating(self, obj):
-    #     queryset_avg = Title.objects.annotate(rating=Avg('reviews__score'))
-    #     title = queryset_avg.get(pk=obj.pk)
-    #     if title.rating is None:
-    #         return None
-    #     return round(title.rating)
+    def get_rating(self, obj):
+        queryset_avg = Title.objects.annotate(rating=Avg('reviews__score'))
+        title = queryset_avg.get(pk=obj.pk)
+        if title.rating is None:
+            return None
+        return round(title.rating)
 
 
-class TitleWriteializer(serializers.ModelSerializer):
+class TitleWriteSializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
         queryset=Category.objects.all(),
         slug_field='slug'
@@ -66,13 +69,21 @@ class TitleWriteializer(serializers.ModelSerializer):
             return None
         return round(title.rating)
 
+    def validate_year(self, value):
+        year_validator(value)
+        return value
+
 
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         read_only=True,
-        slug_field='username'
+        slug_field='username',
+        default=serializers.CurrentUserDefault()
     )
-    score = serializers.IntegerField(min_value=1, max_value=10)
+    score = serializers.IntegerField(
+        min_value=settings.MIN_SCORE,
+        max_value=settings.MAX_SCORE
+    )
 
     class Meta:
         model = Review
@@ -81,13 +92,16 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         request = self.context['request']
-        title = self.context['view'].kwargs.get('title_id')
-        if request.method != 'POST':
-            return data
-        if Review.objects.filter(author=request.user, title=title).exists():
-            raise serializers.ValidationError(
-                'Отзыв на это произведение уже написан.'
-            )
+        if request.method == 'POST':
+            title_id = self.context['view'].kwargs.get('title_id')
+            title = get_object_or_404(Title, pk=title_id)
+            if Review.objects.filter(
+                    author=request.user,
+                    title=title
+            ).exists():
+                raise serializers.ValidationError(
+                    'Отзыв на это произведение уже написан.'
+                )
         return data
 
 
