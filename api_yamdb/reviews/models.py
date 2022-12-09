@@ -99,7 +99,7 @@ class Title(models.Model):
 
 class TitleGenre(models.Model):
     title = models.ForeignKey(Title, on_delete=models.CASCADE)
-    genre = models.ForeignKey(Genre, on_delete=models.PROTECT)
+    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = 'Произведение и жанр'
