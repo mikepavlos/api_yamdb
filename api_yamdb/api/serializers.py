@@ -4,43 +4,39 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
 from reviews.models import Category, Comment, Genre, Review, Title, User
-from reviews.validators import username_validator, year_validator
+from reviews.validators import year_validator, username_validator
 
 
-class CategorySerializer(serializers.ModelSerializer):
+class CommonCategoryGenreSerializer(serializers.ModelSerializer):
 
     class Meta:
+        fields = ('name', 'slug')
+        lookup_field = 'slug'
+
+
+class CategorySerializer(CommonCategoryGenreSerializer):
+
+    class Meta(CommonCategoryGenreSerializer.Meta):
         model = Category
-        fields = ('name', 'slug')
-        lookup_field = 'slug'
 
 
-class GenreSerializer(serializers.ModelSerializer):
+class GenreSerializer(CommonCategoryGenreSerializer):
 
-    class Meta:
+    class Meta(CommonCategoryGenreSerializer.Meta):
         model = Genre
-        fields = ('name', 'slug')
-        lookup_field = 'slug'
 
 
 class TitleReadSerializer(serializers.ModelSerializer):
-    category = CategorySerializer(read_only=True)
-    genre = GenreSerializer(read_only=True, many=True)
-    rating = serializers.SerializerMethodField()
+    category = CategorySerializer()
+    genre = GenreSerializer(many=True)
+    rating = serializers.IntegerField()
 
     class Meta:
         model = Title
         fields = (
             'id', 'name', 'year', 'rating', 'description', 'genre', 'category'
         )
-        read_only_fields = ('id', 'name', 'rating', 'description')
-
-    def get_rating(self, obj):
-        queryset_avg = Title.objects.annotate(rating=Avg('reviews__score'))
-        title = queryset_avg.get(pk=obj.pk)
-        if title.rating is None:
-            return None
-        return round(title.rating)
+        read_only_fields = fields
 
 
 class TitleWriteSializer(serializers.ModelSerializer):
@@ -70,8 +66,7 @@ class TitleWriteSializer(serializers.ModelSerializer):
         return round(title.rating)
 
     def validate_year(self, value):
-        year_validator(value)
-        return value
+        return year_validator(value)
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -92,16 +87,17 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         request = self.context['request']
-        if request.method == 'POST':
-            title_id = self.context['view'].kwargs.get('title_id')
-            title = get_object_or_404(Title, pk=title_id)
-            if Review.objects.filter(
-                    author=request.user,
-                    title=title
-            ).exists():
-                raise serializers.ValidationError(
-                    'Отзыв на это произведение уже написан.'
-                )
+        if request.method != 'POST':
+            return data
+        title_id = self.context['view'].kwargs.get('title_id')
+        title = get_object_or_404(Title, pk=title_id)
+        if Review.objects.filter(
+                author=request.user,
+                title=title
+        ).exists():
+            raise serializers.ValidationError(
+                'Отзыв на это произведение уже написан.'
+            )
         return data
 
 
@@ -117,21 +113,43 @@ class CommentSerializer(serializers.ModelSerializer):
         read_only_fields = ('id',)
 
 
-class SignUpSerializer(serializers.ModelSerializer):
+class SignUpSerializer(serializers.Serializer):
+    username = serializers.CharField(
+        max_length=settings.USERNAME_LENGTH,
+        required=True
+    )
+    email = serializers.EmailField(
+        max_length=settings.EMAIL_LENGTH,
+        required=True
+    )
 
     class Meta:
-        model = User
         fields = ('email', 'username')
 
-    def validate_username(self, value):
-        username_validator(value)
-        return value
+    def validate(self, data):
+        username = data.get('username')
+        email = data.get('email')
+        user = User.objects.filter(username=username, email=email).exists()
+
+        if user:
+            return data
+
+        username_validator(username)
+        if User.objects.filter(username=username).exists():
+            raise serializers.ValidationError(
+                f'Пользователь с именем {username} уже существует.'
+            )
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError(
+                f'Пользователь с email {email} уже существует.'
+            )
+        return data
 
 
 class TokenSerializer(serializers.Serializer):
     username = serializers.CharField(
         required=True,
-        max_length=150,
+        max_length=settings.USERNAME_LENGTH,
         validators=[username_validator])
     confirmation_code = serializers.CharField(required=True)
 
@@ -145,19 +163,10 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
     def validate_username(self, value):
-        username_validator(value)
-        return value
+        return username_validator(value)
 
 
-class MeSerializer(serializers.ModelSerializer):
+class MeSerializer(UserSerializer):
 
-    class Meta:
-        model = User
-        fields = (
-            'username', 'email', 'first_name', 'last_name', 'bio', 'role'
-        )
+    class Meta(UserSerializer.Meta):
         read_only_fields = ('role',)
-
-    def validate_username(self, value):
-        username_validator(value)
-        return value

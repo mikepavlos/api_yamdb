@@ -33,19 +33,12 @@ from .serializers import (
 )
 
 
-class CommonCategoryGenreViewSet(ListCreateDestroyViewSet):
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
-    lookup_field = 'slug'
-    permission_classes = (IsAdminOrReadOnly,)
-
-
-class CategoryViewSet(CommonCategoryGenreViewSet):
+class CategoryViewSet(ListCreateDestroyViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
 
-class GenreViewSet(CommonCategoryGenreViewSet):
+class GenreViewSet(ListCreateDestroyViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
 
@@ -55,7 +48,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitlesFilter
-    ordering_fields = ('rating',)
+    ordering_fields = ('rating', 'name')
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -124,6 +117,18 @@ class UserViewSet(viewsets.ModelViewSet):
 class SignUpView(APIView):
     permission_classes = (AllowAny,)
 
+    def post(self, request):
+        serializer = SignUpSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        username = serializer.validated_data['username']
+        email = serializer.validated_data['email']
+        user, created = User.objects.get_or_create(
+            username=username,
+            email=email
+        )
+        self.send_confirmation_code(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     def send_confirmation_code(self, user):
         confirmation_code = default_token_generator.make_token(user)
         return send_mail(
@@ -133,13 +138,6 @@ class SignUpView(APIView):
             [user.email],
             fail_silently=False,
         )
-
-    def post(self, request):
-        serializer = SignUpSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        self.send_confirmation_code(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class GetTokenView(APIView):

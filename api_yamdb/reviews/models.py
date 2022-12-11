@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-from reviews.validators import username_validator, year_validator
+from .validators import year_validator, username_validator
 
 ADMIN = 'admin'
 MODERATOR = 'moderator'
@@ -21,19 +21,19 @@ ROLE_MAX_LENGTH = max(len(i[0]) for i in ROLE_CHOICES)
 class User(AbstractUser):
     username = models.CharField(
         unique=True,
-        max_length=150,
+        max_length=settings.USERNAME_LENGTH,
         validators=[username_validator]
     )
     email = models.EmailField(
-        max_length=254,
+        max_length=settings.EMAIL_LENGTH,
         unique=True,
     )
     first_name = models.CharField(
-        max_length=150,
+        max_length=settings.USERNAME_LENGTH,
         blank=True,
     )
     last_name = models.CharField(
-        max_length=150,
+        max_length=settings.USERNAME_LENGTH,
         blank=True,
     )
     bio = models.TextField(
@@ -55,7 +55,7 @@ class User(AbstractUser):
 
     @property
     def is_admin(self):
-        return self.role == ADMIN
+        return any([self.role == ADMIN, self.is_superuser, self.is_staff])
 
     @property
     def is_moderator(self):
@@ -63,8 +63,8 @@ class User(AbstractUser):
 
 
 class CommonCategoryGenre(models.Model):
-    name = models.CharField(max_length=256)
-    slug = models.SlugField(unique=True, max_length=50)
+    name = models.CharField(max_length=settings.NAME_LENGTH)
+    slug = models.SlugField(unique=True, max_length=settings.SLUG_LENGTH)
 
     class Meta:
         abstract = True
@@ -88,7 +88,7 @@ class Genre(CommonCategoryGenre):
 
 
 class Title(models.Model):
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=settings.NAME_LENGTH)
     year = models.IntegerField(validators=[year_validator])
     description = models.TextField(blank=True, null=True)
     genre = models.ManyToManyField(
@@ -160,7 +160,7 @@ class Review(models.Model):
         verbose_name_plural = 'Отзывы'
 
     def __str__(self):
-        return str(self.pk)
+        return self.text[:30]
 
 
 class Comment(models.Model):
@@ -180,3 +180,10 @@ class Comment(models.Model):
         on_delete=models.CASCADE,
         related_name='comments'
     )
+
+    class Meta:
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
+
+    def __str__(self):
+        return self.text[:30]

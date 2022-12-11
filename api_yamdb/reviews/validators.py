@@ -14,11 +14,13 @@ def username_validator(value):
         raise ValidationError(
             'Имя может содержать буквы, цифры и символы @/./+/-/_'
         )
+    return value
 
 
 def year_validator(value):
     now = timezone.now().year
     if value > now:
         raise ValidationError(
-            f'Дата произведения {value} не должна быть больше {now}'
+            f'Дата произведения {value} не должна быть больше {now}.'
         )
+    return value
