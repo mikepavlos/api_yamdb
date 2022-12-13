@@ -15,7 +15,7 @@ ROLE_CHOICES = (
     (USER, USER),
 )
 
-ROLE_MAX_LENGTH = max(len(i[0]) for i in ROLE_CHOICES)
+ROLE_MAX_LENGTH = max(len(role) for role, _ in ROLE_CHOICES)
 
 
 class User(AbstractUser):
