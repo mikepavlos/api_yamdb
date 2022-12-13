@@ -116,7 +116,8 @@ class CommentSerializer(serializers.ModelSerializer):
 class SignUpSerializer(serializers.Serializer):
     username = serializers.CharField(
         max_length=settings.USERNAME_LENGTH,
-        required=True
+        required=True,
+        validators=[username_validator]
     )
     email = serializers.EmailField(
         max_length=settings.EMAIL_LENGTH,
@@ -125,25 +126,6 @@ class SignUpSerializer(serializers.Serializer):
 
     class Meta:
         fields = ('email', 'username')
-
-    def validate(self, data):
-        username = data.get('username')
-        email = data.get('email')
-        user = User.objects.filter(username=username, email=email).exists()
-
-        if user:
-            return data
-
-        username_validator(username)
-        if User.objects.filter(username=username).exists():
-            raise serializers.ValidationError(
-                f'Пользователь с именем {username} уже существует.'
-            )
-        if User.objects.filter(email=email).exists():
-            raise serializers.ValidationError(
-                f'Пользователь с email {email} уже существует.'
-            )
-        return data
 
 
 class TokenSerializer(serializers.Serializer):

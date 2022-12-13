@@ -15,7 +15,7 @@ ROLE_CHOICES = (
     (USER, USER),
 )
 
-ROLE_MAX_LENGTH = max(len(i[0]) for i in ROLE_CHOICES)
+ROLE_MAX_LENGTH = max(len(role) for role, _ in ROLE_CHOICES)
 
 
 class User(AbstractUser):
@@ -47,6 +47,12 @@ class User(AbstractUser):
     )
 
     class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['username', 'email'],
+                name='unique_user'
+            )
+        ]
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
