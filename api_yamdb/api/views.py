@@ -10,7 +10,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import AccessToken
 
 from reviews.models import Category, Genre, Review, Title, User
 from .filters import TitlesFilter
@@ -162,5 +162,5 @@ class GetTokenView(APIView):
                 serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST
             )
-        token = RefreshToken.for_user(user)
+        token = AccessToken.for_user(user)
         return Response({'token': str(token)}, status=status.HTTP_200_OK)
