@@ -22,7 +22,7 @@ cd api_yamdb
 Создать и активировать виртуальное окружение:
 
 ```
-python -m venv env
+python -m venv venv
 ```
 
 ```
@@ -380,7 +380,7 @@ django-filter==2.4
 
 ### Авторы проекта:
 
-- Тимлид-разработчик: Михаил Павлов <pavlovichmihaylovich@yandex.ru>
+- Тимлид-разработчик: Михаил Павлов <mike_pavlovsky@hotmail.com>
 
 - Разработчик: Даниил Чебенев <dachebenev01@mail.ru>
 
